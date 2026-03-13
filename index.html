@@ -314,7 +314,7 @@ input.error{border-color:#e05555!important;animation:shake .35s ease}
 
     <div class="dua">بارك الله فيك ✦ تقبّل الله منا ومنكم</div>
     <div class="dua-t">May Allah bless you · May Allah accept from us and from you</div>
-    <div class="from-l">— with love &amp; prayers, <span id="displaySender"></span></div>
+    <div class="from-l">with love &amp; prayers, <span id="displaySender"></span></div>
 
     <div class="card-actions">
       <button class="cabtn" onclick="copyGreetingText()">
@@ -383,13 +383,13 @@ const presets=[
   "True friends make every celebration brighter. You are one of the reasons my Eid is always special. Wishing you a day full of smiles, sweets, and beautiful memories."
 ];
 
-/* ══ DEFAULT DATE ══ */
+/* ══ DEFAULT DATE = TODAY ══ */
 (function(){
-  const today=new Date(),yr=today.getFullYear();
-  let eid=new Date(yr,2,30);
-  if(today>eid)eid=new Date(yr+1,2,30);
-  const m=String(eid.getMonth()+1).padStart(2,'0'),d=String(eid.getDate()).padStart(2,'0');
-  document.getElementById('eidDate').value=`${eid.getFullYear()}-${m}-${d}`;
+  const today=new Date();
+  const y=today.getFullYear();
+  const m=String(today.getMonth()+1).padStart(2,'0');
+  const d=String(today.getDate()).padStart(2,'0');
+  document.getElementById('eidDate').value=`${y}-${m}-${d}`;
 })();
 
 /* ══ FIREWORKS ══ */
@@ -464,27 +464,6 @@ function startCD(ds){
 
 /* ══ TOAST ══ */
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
-
-/* ══════════════════════════════════════
-   CORE: Ultra-short URL system (no backend)
-
-   How data is packed into the URL:
-   ┌─────────────────────────────────────┐
-   │ name | msgRef | from | days | theme │
-   └─────────────────────────────────────┘
-   Pipe-separated → Base64 (no = padding)
-   Stored in URL #hash — zero redirects.
-
-   msgRef  = "0"–"3" if preset chip used
-             (only index travels, not text!)
-           = "c:"+message if custom typed
-
-   theme   = single char  n/r/e/p
-   date    = days since 2025-01-01 (≤3 digits)
-
-   Result with preset + short names:
-   ~71 chars total ✅
-══════════════════════════════════════ */
 
 const EPOCH     = new Date('2025-01-01').getTime();
 const THEME_MAP = { night:'n', rose:'r', emerald:'e', purple:'p' };
@@ -571,7 +550,7 @@ function generateLink(){
   const url=buildGreetingURL(name,pi,custom,from,date,currentTheme);
   document.getElementById('linkUrl').value=url;
   document.getElementById('linkNote').textContent=
-    `✦ Link ready! ${url.length} chars — copy and share with your loved one.`;
+    `✦ Link ready! copy and share with your loved one.`;
   const box=document.getElementById('linkBox');
   box.style.display='block';
   setTimeout(()=>box.scrollIntoView({behavior:'smooth',block:'center'}),100);
@@ -601,14 +580,9 @@ function previewGreeting(){
   window.open(url, '_blank');
 }
 
-/* ══ RESET FORM ══ */
+/* ══ RESET FORM — full refresh, clears everything ══ */
 function resetForm(){
-  document.getElementById('recipientName').value = '';
-  document.getElementById('personalMsg').value   = '';
-  document.getElementById('senderName').value    = '';
-  document.getElementById('linkBox').style.display = 'none';
-  document.getElementById('recipientName').focus();
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.location.href = window.location.href.split('#')[0].split('?')[0];
 }
 
 /* ══ GREETING PAGE ACTIONS ══ */
