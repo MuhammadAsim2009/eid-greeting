@@ -89,6 +89,11 @@ input.error{border-color:#e05555!important;animation:shake .35s ease}
 .new-btn{width:100%;margin-top:1rem;padding:.75rem;background:transparent;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:var(--sub);font-family:'Crimson Pro',serif;font-size:.85rem;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .25s}
 .new-btn:hover{border-color:var(--heading);color:var(--heading)}
 
+/* Loading spinner inside btn */
+.btn-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(13,27,42,.3);border-top-color:var(--bg1);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.4rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.link-note{font-size:.7rem;color:var(--sub);opacity:.55;margin-top:.6rem;letter-spacing:.05em;line-height:1.5}
+
 /* ═══ GREETING PAGE ═══ */
 #greeting{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:3rem 2rem 7rem;z-index:10}
 #greeting::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 10% 15%,var(--bg2) 0%,transparent 50%),radial-gradient(ellipse at 90% 85%,var(--bg3) 0%,transparent 50%),var(--bg1);z-index:-2}
@@ -206,6 +211,7 @@ input.error{border-color:#e05555!important;animation:shake .35s ease}
       <div class="link-row">
         <input class="link-url" id="linkUrl" readonly onclick="this.select()">
       </div>
+      <div class="link-note" id="linkNote"></div>
       <div class="link-actions">
         <button class="lbtn copy-lbtn" onclick="copyLink()">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
@@ -526,8 +532,8 @@ function checkURLParams(){
   }
 }
 
-/* ══ GENERATE LINK (sender action) ══ */
-function generateLink(){
+/* ══ GENERATE LINK with URL shortening ══ */
+async function generateLink(){
   const el   = document.getElementById('recipientName');
   const name = el.value.trim();
   if(!name){el.classList.add('error');el.focus();setTimeout(()=>el.classList.remove('error'),800);return;}
@@ -536,15 +542,41 @@ function generateLink(){
   const from = document.getElementById('senderName').value.trim()  || 'Someone Who Cares ♥';
   const date = document.getElementById('eidDate').value || '2025-03-30';
 
-  const url = buildGreetingURL(name, msg, from, date, currentTheme);
+  const longUrl = buildGreetingURL(name, msg, from, date, currentTheme);
 
-  // Show link box
-  document.getElementById('linkUrl').value = url;
-  const box = document.getElementById('linkBox');
+  // Show box immediately with loading state
+  const box     = document.getElementById('linkBox');
+  const urlInput= document.getElementById('linkUrl');
+  const note    = document.getElementById('linkNote');
+  const btn     = document.querySelector('.btn');
+
+  urlInput.value = 'Generating short link…';
+  note.textContent = '';
   box.style.display = 'block';
-
-  // Scroll to it
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-spinner"></span> Shortening…';
   setTimeout(()=>box.scrollIntoView({behavior:'smooth',block:'center'}), 100);
+
+  try {
+    // TinyURL free API — no key needed
+    const res  = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+    if(!res.ok) throw new Error('API error');
+    const short = await res.text();
+
+    if(short.startsWith('https://tinyurl.com') || short.startsWith('http://tinyurl.com')){
+      urlInput.value   = short.trim();
+      note.textContent = '✦ Short link ready — copy and share it!';
+    } else {
+      throw new Error('Bad response');
+    }
+  } catch(e){
+    // Fallback: use the long URL if shortening fails
+    urlInput.value   = longUrl;
+    note.textContent = '⚠ Could not shorten — full link shown. Still works!';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✦ Generate Greeting Link ✦';
+  }
 }
 
 /* ══ COPY LINK ══ */
