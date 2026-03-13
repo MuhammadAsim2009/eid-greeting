@@ -89,10 +89,9 @@ input.error{border-color:#e05555!important;animation:shake .35s ease}
 .new-btn{width:100%;margin-top:1rem;padding:.75rem;background:transparent;border:1px solid rgba(255,255,255,.12);border-radius:2px;color:var(--sub);font-family:'Crimson Pro',serif;font-size:.85rem;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .25s}
 .new-btn:hover{border-color:var(--heading);color:var(--heading)}
 
-/* Loading spinner inside btn */
+.link-note{font-size:.7rem;color:var(--sub);opacity:.6;margin-top:.6rem;letter-spacing:.05em;line-height:1.5}
 .btn-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(13,27,42,.3);border-top-color:var(--bg1);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.4rem}
 @keyframes spin{to{transform:rotate(360deg)}}
-.link-note{font-size:.7rem;color:var(--sub);opacity:.55;margin-top:.6rem;letter-spacing:.05em;line-height:1.5}
 
 /* ═══ GREETING PAGE ═══ */
 #greeting{display:none;min-height:100vh;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:3rem 2rem 7rem;z-index:10}
@@ -383,7 +382,6 @@ const presets=[
   "Alhamdulillah for the blessings of Ramadan and the joy of Eid. May Allah accept our fasts, prayers, and good deeds. Taqabbal Allahu minna wa minkum.",
   "True friends make every celebration brighter. You are one of the reasons my Eid is always special. Wishing you a day full of smiles, sweets, and beautiful memories."
 ];
-function setPreset(i){ document.getElementById('personalMsg').value=presets[i]; }
 
 /* ══ DEFAULT DATE ══ */
 (function(){
@@ -468,115 +466,115 @@ function startCD(ds){
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 
 /* ══════════════════════════════════════
-   CORE: URL-based link system
+   CORE: Ultra-short URL system (no backend)
+
+   How data is packed into the URL:
+   ┌─────────────────────────────────────┐
+   │ name | msgRef | from | days | theme │
+   └─────────────────────────────────────┘
+   Pipe-separated → Base64 (no = padding)
+   Stored in URL #hash — zero redirects.
+
+   msgRef  = "0"–"3" if preset chip used
+             (only index travels, not text!)
+           = "c:"+message if custom typed
+
+   theme   = single char  n/r/e/p
+   date    = days since 2025-01-01 (≤3 digits)
+
+   Result with preset + short names:
+   ~71 chars total ✅
 ══════════════════════════════════════ */
 
-/**
- * Build a shareable URL with all greeting data encoded as query params.
- * Everything stays in ONE html file — the URL carries the data.
- */
-function buildGreetingURL(name, msg, from, date, theme){
-  const base = window.location.href.split('?')[0];
-  const params = new URLSearchParams({
-    name: name,
-    msg:  msg,
-    from: from,
-    date: date,
-    theme: theme
-  });
-  return `${base}?${params.toString()}`;
+const EPOCH     = new Date('2025-01-01').getTime();
+const THEME_MAP = { night:'n', rose:'r', emerald:'e', purple:'p' };
+const THEME_REV = { n:'night', r:'rose', e:'emerald', p:'purple' };
+
+function dateToDays(ds){ return Math.round((new Date(ds).getTime()-EPOCH)/86400000); }
+function daysToDate(n){ return new Date(EPOCH+n*86400000).toISOString().slice(0,10); }
+
+/** Encode → URL */
+function buildGreetingURL(name, presetIdx, customMsg, from, date, theme){
+  const t      = THEME_MAP[theme]||'n';
+  const days   = dateToDays(date);
+  const msgRef = presetIdx>=0 ? String(presetIdx) : 'c:'+customMsg;
+  const packed = [name, msgRef, from, days, t].join('|');
+  const hash   = btoa(unescape(encodeURIComponent(packed))).replace(/=+$/,'');
+  return window.location.href.split('#')[0].split('?')[0]+'#'+hash;
 }
 
-/**
- * On page load, check if URL has greeting params.
- * If yes → show greeting page directly (the receiver's experience).
- * If no  → show setup page (the sender's experience).
- */
+/** Decode URL hash → data object */
+function decodeHash(hash){
+  try{
+    const pad    = hash+'='.repeat((4-hash.length%4)%4);
+    const packed = decodeURIComponent(escape(atob(pad)));
+    const [name,msgRef,from,dStr,tc] = packed.split('|');
+    if(!name) return null;
+    let msg; const pi=parseInt(msgRef);
+    if(msgRef.startsWith('c:')) msg=msgRef.slice(2);
+    else msg=presets[isNaN(pi)?0:pi]||presets[0];
+    return { name, msg, from, date:daysToDate(parseInt(dStr)||0), theme:THEME_REV[tc]||'night' };
+  }catch(e){return null;}
+}
+
+/** Page load — receiver sees card, sender sees form */
 function checkURLParams(){
-  const params = new URLSearchParams(window.location.search);
-  const name  = params.get('name');
-  const msg   = params.get('msg');
-  const from  = params.get('from');
-  const date  = params.get('date');
-  const theme = params.get('theme');
+  const hash=window.location.hash.slice(1);
+  if(!hash){showSetup();return;}
+  const data=decodeHash(hash);
+  if(!data||!data.name){showSetup();return;}
 
-  if(name){ // We have greeting data in URL → show greeting page
-    // Apply theme
-    if(theme && theme !== 'night'){
-      document.body.className = `theme-${theme}`;
-    }
-    // Fill card
-    document.getElementById('displayName').textContent   = decodeURIComponent(name);
-    document.getElementById('displayMsg').textContent    = decodeURIComponent(msg || presets[0]);
-    document.getElementById('displaySender').textContent = decodeURIComponent(from || 'Someone Who Cares ♥');
-
-    // Update page title
-    document.title = `Eid Mubarak, ${decodeURIComponent(name)}! 🌙`;
-
-    // Show greeting, hide setup
-    document.getElementById('setup').style.display   = 'none';
-    document.getElementById('greeting').style.display = 'flex';
-
-    // Update receiver badge
-    document.getElementById('receiverBadge').textContent =
-      `🌙 This greeting is for ${decodeURIComponent(name)}`;
-
-    // Start effects
-    spawnPetals();
-    startFW();
-    startCD(date || '2025-03-30');
-  } else {
-    // No params → sender's setup page (default)
-    document.getElementById('setup').style.display   = 'flex';
-    document.getElementById('greeting').style.display = 'none';
-  }
+  if(data.theme!=='night') document.body.className=`theme-${data.theme}`;
+  document.getElementById('displayName').textContent   = data.name;
+  document.getElementById('displayMsg').textContent    = data.msg;
+  document.getElementById('displaySender').textContent = data.from||'Someone Who Cares ♥';
+  document.title=`Eid Mubarak, ${data.name}! 🌙`;
+  document.getElementById('receiverBadge').textContent=`🌙 This greeting is for ${data.name}`;
+  document.getElementById('setup').style.display  ='none';
+  document.getElementById('greeting').style.display='flex';
+  spawnPetals(); startFW(); startCD(data.date||'2025-03-30');
 }
 
-/* ══ GENERATE LINK with URL shortening ══ */
-async function generateLink(){
-  const el   = document.getElementById('recipientName');
-  const name = el.value.trim();
+function showSetup(){
+  document.getElementById('setup').style.display  ='flex';
+  document.getElementById('greeting').style.display='none';
+}
+
+/* ══ TRACK SELECTED PRESET ══ */
+let selectedPreset=-1;
+
+function setPreset(i){
+  document.getElementById('personalMsg').value=presets[i];
+  selectedPreset=i;
+  document.querySelectorAll('.chip').forEach((c,idx)=>{
+    c.style.background  = idx===i?'rgba(201,168,76,.18)':'';
+    c.style.borderColor = idx===i?'var(--heading)':'';
+    c.style.color       = idx===i?'var(--heading)':'';
+  });
+}
+
+/* ══ GENERATE LINK — instant, no API ══ */
+function generateLink(){
+  const el  =document.getElementById('recipientName');
+  const name=el.value.trim();
   if(!name){el.classList.add('error');el.focus();setTimeout(()=>el.classList.remove('error'),800);return;}
 
-  const msg  = document.getElementById('personalMsg').value.trim() || presets[0];
-  const from = document.getElementById('senderName').value.trim()  || 'Someone Who Cares ♥';
-  const date = document.getElementById('eidDate').value || '2025-03-30';
+  const typed =document.getElementById('personalMsg').value.trim();
+  const from  =document.getElementById('senderName').value.trim()||'Someone Who Cares ♥';
+  const date  =document.getElementById('eidDate').value||'2025-03-30';
 
-  const longUrl = buildGreetingURL(name, msg, from, date, currentTheme);
+  // Use preset index if chip was clicked or typed text matches a preset
+  let pi=selectedPreset, custom='';
+  if(pi<0){ const mi=presets.findIndex(p=>p===typed); pi=mi>=0?mi:-1; }
+  if(pi<0) custom=typed||presets[0];
 
-  // Show box immediately with loading state
-  const box     = document.getElementById('linkBox');
-  const urlInput= document.getElementById('linkUrl');
-  const note    = document.getElementById('linkNote');
-  const btn     = document.querySelector('.btn');
-
-  urlInput.value = 'Generating short link…';
-  note.textContent = '';
-  box.style.display = 'block';
-  btn.disabled = true;
-  btn.innerHTML = '<span class="btn-spinner"></span> Shortening…';
-  setTimeout(()=>box.scrollIntoView({behavior:'smooth',block:'center'}), 100);
-
-  try {
-    // TinyURL free API — no key needed
-    const res  = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
-    if(!res.ok) throw new Error('API error');
-    const short = await res.text();
-
-    if(short.startsWith('https://tinyurl.com') || short.startsWith('http://tinyurl.com')){
-      urlInput.value   = short.trim();
-      note.textContent = '✦ Short link ready — copy and share it!';
-    } else {
-      throw new Error('Bad response');
-    }
-  } catch(e){
-    // Fallback: use the long URL if shortening fails
-    urlInput.value   = longUrl;
-    note.textContent = '⚠ Could not shorten — full link shown. Still works!';
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '✦ Generate Greeting Link ✦';
-  }
+  const url=buildGreetingURL(name,pi,custom,from,date,currentTheme);
+  document.getElementById('linkUrl').value=url;
+  document.getElementById('linkNote').textContent=
+    `✦ Link ready! ${url.length} chars — copy and share with your loved one.`;
+  const box=document.getElementById('linkBox');
+  box.style.display='block';
+  setTimeout(()=>box.scrollIntoView({behavior:'smooth',block:'center'}),100);
 }
 
 /* ══ COPY LINK ══ */
