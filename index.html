@@ -143,8 +143,7 @@ input.error{border-color:#e05555!important;animation:shake .35s ease}
 /* Countdown */
 .cdbar{animation:fadeUp 1s 1.2s ease both;opacity:0;animation-fill-mode:forwards;margin-top:1.5rem;padding-top:1.3rem;border-top:1px solid rgba(255,255,255,.06)}
 .cd-lbl{font-size:.7rem;color:var(--sub);letter-spacing:.3em;text-transform:uppercase;margin-bottom:.65rem;opacity:.6}
-.cd-lbl.eid-now{font-size:.85rem;color:var(--heading);opacity:1;letter-spacing:.25em;animation:eidPulse 1.2s ease-in-out infinite}
-@keyframes eidPulse{0%,100%{text-shadow:0 0 10px currentColor;transform:scale(1)}50%{text-shadow:0 0 25px currentColor,0 0 50px currentColor;transform:scale(1.04)}}
+.cd-lbl.eid-now{font-size:1.1rem;color:var(--heading);opacity:1;letter-spacing:.15em}
 .cd-boxes{display:flex;justify-content:center;gap:.9rem;align-items:flex-start}
 .cd-box{text-align:center;min-width:52px}
 .cd-num{font-family:'Playfair Display',serif;font-size:1.9rem;color:var(--heading);line-height:1;font-weight:700}
@@ -316,7 +315,7 @@ input.error{border-color:#e05555!important;animation:shake .35s ease}
 
     <div class="dua">بارك الله فيك ✦ تقبّل الله منا ومنكم</div>
     <div class="dua-t">May Allah bless you · May Allah accept from us and from you</div>
-    <div class="from-l">— with love &amp; prayers, <span id="displaySender"></span></div>
+    <div class="from-l"> with love &amp; prayers, <span id="displaySender"></span></div>
 
     <div class="card-actions">
       <button class="cabtn" onclick="copyGreetingText()">
@@ -460,6 +459,7 @@ function startCD(ds){
       document.getElementById('cdH').textContent='00';
       document.getElementById('cdM').textContent='00';
       document.getElementById('cdS').textContent='00';
+      document.querySelectorAll('.cd-num').forEach(el=>el.style.fontSize='1rem');
       const lbl=document.getElementById('cdLabel');
       lbl.textContent='🎉 EID MUBARAK! TODAY IS EID!';
       lbl.classList.add('eid-now');
