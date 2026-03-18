@@ -562,7 +562,7 @@ function generateLink(){
   const url=buildGreetingURL(name,pi,custom,from,date,currentTheme);
   document.getElementById('linkUrl').value=url;
   document.getElementById('linkNote').textContent=
-    `✦ Link ready! ${url.length} chars — copy and share with your loved one.`;
+    `✦ Link ready! copy and share with your loved one.`;
   const box=document.getElementById('linkBox');
   box.style.display='block';
   setTimeout(()=>box.scrollIntoView({behavior:'smooth',block:'center'}),100);
